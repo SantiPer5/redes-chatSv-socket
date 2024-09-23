@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Chat Básico</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+      }
+      #chat {
+        margin: 20px;
+        padding: 10px;
+        border: 1px solid #ccc;
+        height: 300px;
+        overflow-y: scroll;
+      }
+      #message {
+        width: 80%;
+      }
+      #send {
+        width: 15%;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Chat en Tiempo Real</h1>
+    <div id="chat"></div>
+    <input id="username" type="text" placeholder="Nombre de usuario" />
+    <button id="login">Ingresar</button>
+    <br /><br />
+    <input id="message" type="text" placeholder="Escribe tu mensaje aquí" />
+    <button id="send">Enviar</button>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io();
+      const chat = document.getElementById("chat");
+      const messageInput = document.getElementById("message");
+      const sendBtn = document.getElementById("send");
+      const usernameInput = document.getElementById("username");
+      const loginBtn = document.getElementById("login");
+      let username;
+
+      // Ingresar nombre de usuario
+      loginBtn.addEventListener("click", () => {
+        username = usernameInput.value;
+        if (username) {
+          socket.emit("new user", username);
+          usernameInput.style.display = "none";
+          loginBtn.style.display = "none";
+          messageInput.disabled = false;  // Habilitar el input de mensajes
+          sendBtn.disabled = false;       // Habilitar el botón de enviar
+        }
+      });
+
+      // Enviar mensaje o comando
+      sendBtn.addEventListener("click", () => {
+        const msg = messageInput.value;
+        if (msg.startsWith("/")) {
+          // Detectar comandos
+          if (msg === "/listar") {
+            socket.emit("list users");
+          } else if (msg === "/quitar") {
+            socket.emit("disconnect");
+            messageInput.disabled = true;
+            sendBtn.disabled = true;
+            chat.innerHTML += `<p><strong>Te has desconectado del chat.</strong></p>`;
+          }
+        } else if (msg) {
+          // Enviar mensaje normal
+          socket.emit("chat message", msg);
+          messageInput.value = "";
+        }
+      });
+
+      // Recibir y mostrar mensajes
+      socket.on("chat message", (data) => {
+        const messageElement = document.createElement("p");
+        messageElement.textContent = `${data.user}: ${data.message}`;
+        chat.appendChild(messageElement);
+      });
+
+      // Actualizar lista de usuarios
+      socket.on("user list", (users) => {
+        const userList = users.join(", ");
+        chat.innerHTML += `<p><strong>Usuarios conectados:</strong> ${userList}</p>`;
+      });
+
+    </script>
+  </body>
+</html>
